@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Cube))]
 public class ExplodingCubeV2 : MonoBehaviour
 {
     [SerializeField] private GameObject cubePrefab;
@@ -8,7 +9,14 @@ public class ExplodingCubeV2 : MonoBehaviour
     [SerializeField] private float baseExplosionForce = 300f;
     [SerializeField] private float baseExplosionRadius = 2f;
 
+    private Cube _cube;
     private static float _splitChance = 1f;
+    private static readonly Collider[] Buffer = new Collider[50];
+
+    private void Awake()
+    {
+        _cube = GetComponent<Cube>();
+    }
 
     private void OnMouseDown()
     {
@@ -34,12 +42,9 @@ public class ExplodingCubeV2 : MonoBehaviour
             
             newCube.transform.localScale = transform.localScale * 0.5f;
             
-            var renderer = newCube.GetComponent<Renderer>();
-            renderer.material.color = Random.ColorHSV();
-            
-            var rb = newCube.AddComponent<Rigidbody>();
-            
-            rb.AddExplosionForce(baseExplosionForce, position, baseExplosionRadius);
+            Cube cubeComponent = newCube.GetComponent<Cube>();
+            cubeComponent.SetColor(Random.ColorHSV());
+            cubeComponent.AddExplosionForce(baseExplosionForce, position, baseExplosionRadius);
         }
 
         Destroy(gameObject);
@@ -53,11 +58,11 @@ public class ExplodingCubeV2 : MonoBehaviour
         float explosionForce = baseExplosionForce * scaleFactor;
         float explosionRadius = baseExplosionRadius * scaleFactor;
         
-        Collider[] colliders = Physics.OverlapSphere(position, explosionRadius);
+        int count = Physics.OverlapSphereNonAlloc(position, explosionRadius, Buffer);
 
-        foreach (var col in colliders)
+        for (int i = 0; i < count; i++)
         {
-            Rigidbody rb = col.attachedRigidbody;
+            Rigidbody rb = Buffer[i].attachedRigidbody;
             if (rb != null && rb.gameObject != gameObject)
             {
                 rb.AddExplosionForce(explosionForce, position, explosionRadius);

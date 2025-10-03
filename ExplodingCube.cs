@@ -1,21 +1,32 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Cube))]
 public class ExplodingCube : MonoBehaviour
 {
     [SerializeField] private GameObject cubePrefab;
-    [SerializeField] private int minChildren = 2;
-    [SerializeField] private int maxChildren = 6;
     [SerializeField] private float explosionForce = 300f;
     [SerializeField] private float explosionRadius = 2f;
 
-    private static float _splitChance = 1f;
+    private Cube _cube;
+
+    private const float INITIAL_SPLIT_CHANCE = 1f;
+    private float _splitChance = INITIAL_SPLIT_CHANCE;
+
+    private void Awake()
+    {
+        _cube = GetComponent<Cube>();
+    }
 
     private void OnMouseDown()
     {
+        TryExplode();
+    }
+
+    private void TryExplode()
+    {
         if (Random.value <= _splitChance)
         {
-            SplitCube();
-            _splitChance *= 0.5f;
+            Split();
         }
         else
         {
@@ -23,24 +34,24 @@ public class ExplodingCube : MonoBehaviour
         }
     }
 
-    private void SplitCube()
+    private void Split()
     {
+        int count = Random.Range(2, 7);
         Vector3 position = transform.position;
-
-        int count = Random.Range(minChildren, maxChildren + 1);
 
         for (int i = 0; i < count; i++)
         {
             GameObject newCube = Instantiate(cubePrefab, position, Random.rotation);
+            Cube cubeComponent = newCube.GetComponent<Cube>();
             
             newCube.transform.localScale = transform.localScale * 0.5f;
             
-            var renderer = newCube.GetComponent<Renderer>();
-            renderer.material.color = Random.ColorHSV();
+            cubeComponent.SetColor(new Color(Random.value, Random.value, Random.value));
             
-            var rb = newCube.AddComponent<Rigidbody>();
+            var exploding = newCube.GetComponent<ExplodingCube>();
+            exploding._splitChance = _splitChance / 2f;
             
-            rb.AddExplosionForce(explosionForce, position, explosionRadius);
+            cubeComponent.AddExplosionForce(explosionForce, position, explosionRadius);
         }
 
         Destroy(gameObject);
